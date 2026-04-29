@@ -1,0 +1,26 @@
+[
+  {
+    "endpoint":"ames",
+    "auc":0.8495068403,
+    "accuracy":0.7836538462,
+    "sensitivity":0.8321513002,
+    "specificity":0.7163934426,
+    "f1":0.8171793384
+  },
+  {
+    "endpoint":"herg",
+    "auc":0.8639349456,
+    "accuracy":0.7933085502,
+    "sensitivity":0.7641296157,
+    "specificity":0.8217168012,
+    "f1":0.7848297214
+  },
+  {
+    "endpoint":"dili",
+    "auc":0.8510869565,
+    "accuracy":0.7395833333,
+    "sensitivity":0.82,
+    "specificity":0.652173913,
+    "f1":0.7663551402
+  }
+]
