@@ -1,0 +1,843 @@
+{% extends "base.html" %}
+
+{% block title %}Molecular Analysis - Discovery Platform{% endblock %}
+
+{% block head %}
+<style>
+    .analysis-input {
+        font-family: 'Courier New', monospace;
+    }
+    
+    .property-card {
+        transition: transform 0.2s;
+    }
+    
+    .property-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .property-meter {
+        height: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .property-value {
+        height: 100%;
+        transition: width 0.5s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <!-- SMILES Input -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Molecular Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="analysisForm">
+                    <div class="mb-3">
+                        <label for="smilesInput" class="form-label">Enter Chemical Formula or SMILES:</label>
+                        <textarea class="form-control analysis-input" id="smilesInput" rows="3" 
+                                placeholder="Try: CO₂, H₂O, C₆H₆, NaCl or SMILES like CC(=O)OC1=CC=CC=C1C(=O)O"></textarea>
+                        <div class="form-text">
+                            <strong>Easy Mode:</strong> Enter simple formulas like CO₂, H₂O, NH₃, C₆H₆ (benzene)<br>
+                            <strong>Advanced:</strong> Use SMILES notation for complex molecules
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Analyze Molecule
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="exampleBtn">
+                            <i class="fas fa-flask me-2"></i>Try Aspirin
+                        </button>
+                    </div>
+                    
+                    <!-- Quick Start Buttons -->
+                    <div class="mt-3">
+                        <h6 class="small text-muted mb-2">Quick Start - Try These:</h6>
+                        <div class="row g-2">
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="CO₂">
+                                    CO₂ (Carbon Dioxide)
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="H₂O">
+                                    H₂O (Water)
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="C₆H₆">
+                                    C₆H₆ (Benzene)
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="NH₃">
+                                    NH₃ (Ammonia)
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="CH₄">
+                                    CH₄ (Methane)
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <button type="button" class="btn btn-outline-info btn-sm w-100 formula-btn" data-formula="NaCl">
+                                    NaCl (Salt)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Validation Messages -->
+                <div id="validationMessage" class="alert mt-3" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- Example Molecules -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-pills me-2"></i>Example Drug Molecules
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            data-smiles="CC(=O)OC1=CC=CC=C1C(=O)O">
+                        <strong>Aspirin</strong><br>
+                        <small class="text-muted font-monospace">CC(=O)OC1=CC=CC=C1C(=O)O</small>
+                    </button>
+                    
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            data-smiles="CC(C)CC1=CC=C(C=C1)C(C)C(=O)O">
+                        <strong>Ibuprofen</strong><br>
+                        <small class="text-muted font-monospace">CC(C)CC1=CC=C(C=C1)C(C)C(=O)O</small>
+                    </button>
+                    
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            data-smiles="CN1C=NC2=C1C(=O)N(C(=O)N2C)C">
+                        <strong>Caffeine</strong><br>
+                        <small class="text-muted font-monospace">CN1C=NC2=C1C(=O)N(C(=O)N2C)C</small>
+                    </button>
+                    
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            data-smiles="CN(C)CCOC1=CC=CC=C1">
+                        <strong>Diphenhydramine</strong><br>
+                        <small class="text-muted font-monospace">CN(C)CCOC1=CC=CC=C1</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <!-- Analysis Results -->
+        <div id="resultsSection" style="display: none;">
+            <!-- 3D Molecular Viewer -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cube me-2"></i>3D Molecular Structure
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative mb-3">
+                        <div id="molecule3d" style="height: 300px; width: 100%; border: 2px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: #000; position: relative;"></div>
+                        
+                        <!-- Fullscreen Button -->
+                        <button id="fullscreenBtn" class="btn btn-outline-light btn-sm position-absolute" 
+                                style="top: 10px; right: 10px; z-index: 1000;" 
+                                title="Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        
+                        <!-- Atom Info Panel -->
+                        <div id="atomInfo" class="position-absolute bg-dark border rounded p-2" 
+                             style="top: 10px; left: 10px; z-index: 1000; display: none; min-width: 150px;">
+                            <small id="atomDetails" class="text-light"></small>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <small class="text-muted">Interactive 3D view - drag to rotate, scroll to zoom, click atoms for details</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-atom me-2"></i>Analysis Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Molecular Information -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Molecular Structure</h6>
+                        <div class="bg-dark p-3 rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Atoms:</small> <span id="result-atoms" class="fw-bold">-</span><br>
+                                    <small class="text-muted">Bonds:</small> <span id="result-bonds" class="fw-bold">-</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Rings:</small> <span id="result-rings" class="fw-bold">-</span><br>
+                                    <small class="text-muted">Aromatic:</small> <span id="result-aromatic" class="fw-bold">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Property Cards -->
+                    <div class="row g-3">
+                        <!-- Molecular Weight -->
+                        <div class="col-md-6">
+                            <div class="card property-card bg-dark border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-weight text-primary fa-2x mb-2"></i>
+                                    <h6 class="card-title">Molecular Weight</h6>
+                                    <h4 class="text-primary" id="result-mw">-</h4>
+                                    <small class="text-muted">Daltons (Da)</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- LogP -->
+                        <div class="col-md-6">
+                            <div class="card property-card bg-dark border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tint text-info fa-2x mb-2"></i>
+                                    <h6 class="card-title">LogP</h6>
+                                    <h4 class="text-info" id="result-logp">-</h4>
+                                    <small class="text-muted">Lipophilicity</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- QED Score -->
+                        <div class="col-md-6">
+                            <div class="card property-card bg-dark border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-star text-success fa-2x mb-2"></i>
+                                    <h6 class="card-title">QED Score</h6>
+                                    <h4 class="text-success" id="result-qed">-</h4>
+                                    <small class="text-muted">Drug-likeness</small>
+                                    <div class="property-meter bg-secondary mt-2">
+                                        <div class="property-value bg-success" id="qed-meter" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- SA Score -->
+                        <div class="col-md-6">
+                            <div class="card property-card bg-dark border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-cog text-warning fa-2x mb-2"></i>
+                                    <h6 class="card-title">SA Score</h6>
+                                    <h4 class="text-warning" id="result-sa">-</h4>
+                                    <small class="text-muted">Synthesis difficulty</small>
+                                    <div class="property-meter bg-secondary mt-2">
+                                        <div class="property-value bg-warning" id="sa-meter" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Properties -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-list-ul me-2"></i>Detailed Properties
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Molecular Descriptors</h6>
+                            <div class="property-list">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>H-Bond Donors:</span>
+                                    <span class="fw-bold" id="result-hbd">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>H-Bond Acceptors:</span>
+                                    <span class="fw-bold" id="result-hba">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>TPSA:</span>
+                                    <span class="fw-bold" id="result-tpsa">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Rotatable Bonds:</span>
+                                    <span class="fw-bold" id="result-rotbonds">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-success mb-3">Drug-Likeness Assessment</h6>
+                            <div class="property-list">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Lipinski Violations:</span>
+                                    <span class="fw-bold" id="result-lipinski">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Drug-Like:</span>
+                                    <span class="fw-bold" id="result-druglike">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Synthetically Feasible:</span>
+                                    <span class="fw-bold" id="result-synthetic">-</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Assessment badges -->
+                            <div class="mt-3">
+                                <div id="assessmentBadges"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lipinski's Rule of Five -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Lipinski's Rule of Five
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="rule-check" id="rule-mw">
+                                    <i class="fas fa-question-circle fa-2x text-muted"></i>
+                                </div>
+                                <small class="d-block mt-2">MW ≤ 500 Da</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="rule-check" id="rule-logp">
+                                    <i class="fas fa-question-circle fa-2x text-muted"></i>
+                                </div>
+                                <small class="d-block mt-2">LogP ≤ 5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="rule-check" id="rule-hbd">
+                                    <i class="fas fa-question-circle fa-2x text-muted"></i>
+                                </div>
+                                <small class="d-block mt-2">HBD ≤ 5</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="rule-check" id="rule-hba">
+                                    <i class="fas fa-question-circle fa-2x text-muted"></i>
+                                </div>
+                                <small class="d-block mt-2">HBA ≤ 10</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Explanation Section -->
+            <div id="aiExplanationSection" class="card mt-4" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-brain me-2"></i>AI Analysis Explanation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="aiTyping" class="d-flex align-items-center mb-3" style="display: none !important;">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <small class="text-muted">AI is analyzing your molecule...</small>
+                    </div>
+                    <div id="aiExplanation" class="text-light"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Welcome Message -->
+        <div id="welcomeSection">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-microscope fa-4x text-muted mb-3"></i>
+                    <h5>Ready for Molecular Analysis</h5>
+                    <p class="text-muted">
+                        Enter a SMILES string to analyze molecular properties, drug-likeness, 
+                        and synthetic accessibility. Use the example molecules to get started.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnalysisInterface();
+});
+
+function initializeAnalysisInterface() {
+    const form = document.getElementById('analysisForm');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const exampleMolecules = document.querySelectorAll('[data-smiles]');
+    const formulaButtons = document.querySelectorAll('.formula-btn');
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        analyzeMolecule();
+    });
+    
+    // Example button
+    exampleBtn.addEventListener('click', function() {
+        document.getElementById('smilesInput').value = 'CC(=O)OC1=CC=CC=C1C(=O)O';
+        analyzeMolecule();
+    });
+    
+    // Quick formula buttons
+    formulaButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formula = this.getAttribute('data-formula');
+            document.getElementById('smilesInput').value = formula;
+            analyzeMolecule();
+        });
+    });
+    
+    // Example molecule buttons
+    exampleMolecules.forEach(button => {
+        button.addEventListener('click', function() {
+            const smiles = this.getAttribute('data-smiles');
+            document.getElementById('smilesInput').value = smiles;
+            analyzeMolecule();
+        });
+    });
+}
+
+async function analyzeMolecule() {
+    const smiles = document.getElementById('smilesInput').value.trim();
+    
+    if (!smiles) {
+        showValidationMessage('Please enter a SMILES string', 'warning');
+        return;
+    }
+    
+    hideValidationMessage();
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/calculate_properties', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({smiles: smiles})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayAnalysisResults(data);
+            showValidationMessage('Analysis completed successfully', 'success');
+        } else {
+            showValidationMessage('Error: ' + data.error, 'danger');
+        }
+    } catch (error) {
+        showValidationMessage('Network error occurred', 'danger');
+        console.error('Analysis error:', error);
+    } finally {
+        hideLoading();
+    }
+}
+
+function displayAnalysisResults(data) {
+    const properties = data.properties;
+    const smiles = data.smiles;
+    const originalInput = data.original_input;
+    const inputType = data.input_type;
+    
+    // Show results section, hide welcome
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('welcomeSection').style.display = 'none';
+    
+    // Show input conversion info if applicable
+    if (originalInput && originalInput !== smiles) {
+        showValidationMessage(
+            `Formula "${originalInput}" converted to SMILES: ${smiles}`, 
+            'info'
+        );
+    }
+    
+    // Render 3D molecule
+    render3DMolecule(smiles);
+    
+    // Generate AI explanation
+    generateAIExplanation(smiles, properties);
+    
+    // Basic molecular information
+    document.getElementById('result-atoms').textContent = properties.num_atoms;
+    document.getElementById('result-bonds').textContent = properties.num_bonds;
+    document.getElementById('result-rings').textContent = properties.num_rings;
+    document.getElementById('result-aromatic').textContent = properties.aromatic_rings;
+    
+    // Property cards
+    document.getElementById('result-mw').textContent = properties.molecular_weight;
+    document.getElementById('result-logp').textContent = properties.logp;
+    document.getElementById('result-qed').textContent = properties.qed_score;
+    document.getElementById('result-sa').textContent = properties.sa_score;
+    
+    // Property meters
+    const qedPercent = (properties.qed_score * 100);
+    const saPercent = Math.max(0, (10 - properties.sa_score) * 10); // Invert SA score
+    
+    document.getElementById('qed-meter').style.width = qedPercent + '%';
+    document.getElementById('sa-meter').style.width = saPercent + '%';
+    
+    // Detailed properties
+    document.getElementById('result-hbd').textContent = properties.hbd;
+    document.getElementById('result-hba').textContent = properties.hba;
+    document.getElementById('result-tpsa').textContent = properties.tpsa + ' Ų';
+    document.getElementById('result-rotbonds').textContent = properties.rotatable_bonds;
+    
+    // Drug-likeness assessment
+    document.getElementById('result-lipinski').textContent = properties.lipinski_violations;
+    document.getElementById('result-druglike').textContent = properties.drug_like ? 'Yes' : 'No';
+    document.getElementById('result-synthetic').textContent = properties.synthetic_feasible ? 'Yes' : 'No';
+    
+    // Assessment badges
+    displayAssessmentBadges(properties);
+    
+    // Lipinski rule checks
+    displayLipinskiRules(properties);
+}
+
+function displayAssessmentBadges(properties) {
+    const container = document.getElementById('assessmentBadges');
+    container.innerHTML = '';
+    
+    if (properties.drug_like) {
+        container.innerHTML += '<span class="badge bg-success me-1 mb-1">Drug-Like</span>';
+    }
+    if (properties.synthetic_feasible) {
+        container.innerHTML += '<span class="badge bg-info me-1 mb-1">Synthetically Feasible</span>';
+    }
+    if (properties.lipinski_violations === 0) {
+        container.innerHTML += '<span class="badge bg-success me-1 mb-1">Lipinski Compliant</span>';
+    }
+    if (properties.qed_score >= 0.7) {
+        container.innerHTML += '<span class="badge bg-primary me-1 mb-1">High QED</span>';
+    }
+    if (properties.sa_score <= 4) {
+        container.innerHTML += '<span class="badge bg-success me-1 mb-1">Easy to Synthesize</span>';
+    }
+}
+
+function displayLipinskiRules(properties) {
+    // Molecular Weight ≤ 500 Da
+    const mwRule = document.getElementById('rule-mw');
+    if (properties.molecular_weight <= 500) {
+        mwRule.innerHTML = '<i class="fas fa-check-circle fa-2x text-success"></i>';
+    } else {
+        mwRule.innerHTML = '<i class="fas fa-times-circle fa-2x text-danger"></i>';
+    }
+    
+    // LogP ≤ 5
+    const logpRule = document.getElementById('rule-logp');
+    if (properties.logp <= 5) {
+        logpRule.innerHTML = '<i class="fas fa-check-circle fa-2x text-success"></i>';
+    } else {
+        logpRule.innerHTML = '<i class="fas fa-times-circle fa-2x text-danger"></i>';
+    }
+    
+    // HBD ≤ 5
+    const hbdRule = document.getElementById('rule-hbd');
+    if (properties.hbd <= 5) {
+        hbdRule.innerHTML = '<i class="fas fa-check-circle fa-2x text-success"></i>';
+    } else {
+        hbdRule.innerHTML = '<i class="fas fa-times-circle fa-2x text-danger"></i>';
+    }
+    
+    // HBA ≤ 10
+    const hbaRule = document.getElementById('rule-hba');
+    if (properties.hba <= 10) {
+        hbaRule.innerHTML = '<i class="fas fa-check-circle fa-2x text-success"></i>';
+    } else {
+        hbaRule.innerHTML = '<i class="fas fa-times-circle fa-2x text-danger"></i>';
+    }
+}
+
+function showValidationMessage(message, type) {
+    const messageDiv = document.getElementById('validationMessage');
+    messageDiv.className = `alert alert-${type}`;
+    messageDiv.textContent = message;
+    messageDiv.style.display = 'block';
+    
+    if (type === 'success') {
+        setTimeout(() => hideValidationMessage(), 3000);
+    }
+}
+
+function hideValidationMessage() {
+    document.getElementById('validationMessage').style.display = 'none';
+}
+
+function showLoading() {
+    // Could add a loading spinner here
+}
+
+function hideLoading() {
+    // Hide loading spinner
+}
+
+let currentViewer = null;
+
+function render3DMolecule(smiles) {
+    const element = document.getElementById('molecule3d');
+    if (!element) {
+        return;
+    }
+    
+    // Clear previous content
+    element.innerHTML = '';
+    
+    // Setup fullscreen functionality
+    setupFullscreenControls(element);
+    
+    // Check if 3Dmol.js is available
+    if (!window.$3Dmol) {
+        console.warn('3Dmol.js not available');
+        showMoleculeFallback(element, smiles);
+        return;
+    }
+    
+    try {
+        // Create 3D viewer with better configuration
+        const viewer = $3Dmol.createViewer(element, {
+            backgroundColor: '#1a1a1a',
+            antialias: true
+        });
+        
+        // For simple molecules, try to convert SMILES to SDF via web service
+        // This is a common approach since 3Dmol.js works better with 3D coordinates
+        fetch(`https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(smiles)}/sdf`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Could not fetch 3D structure');
+                }
+                return response.text();
+            })
+            .then(sdf => {
+                // Add the SDF model to viewer
+                viewer.addModel(sdf, 'sdf');
+                
+                // Set attractive molecular style
+                viewer.setStyle({}, {
+                    stick: {
+                        radius: 0.2,
+                        colorscheme: 'Jmol'
+                    },
+                    sphere: {
+                        radius: 0.3,
+                        colorscheme: 'Jmol'
+                    }
+                });
+                
+                // Add click interactions for atoms
+                viewer.setClickable({}, true, function(atom, viewer, event, container) {
+                    showAtomInfo(atom);
+                });
+                
+                // Store viewer reference
+                currentViewer = viewer;
+                
+                // Center and render
+                viewer.zoomTo();
+                viewer.render();
+                
+                // Add some visual appeal
+                setTimeout(() => {
+                    viewer.rotate(30, 'y');
+                    viewer.render();
+                }, 500);
+            })
+            .catch(error => {
+                console.log('Web service failed, trying direct SMILES rendering:', error);
+                
+                // Fallback: try direct SMILES with 3Dmol.js
+                try {
+                    viewer.addModel(smiles, 'smi');
+                    viewer.setStyle({}, {
+                        stick: {
+                            radius: 0.2,
+                            colorscheme: 'Jmol'
+                        },
+                        sphere: {
+                            radius: 0.3,
+                            colorscheme: 'Jmol'
+                        }
+                    });
+                    viewer.zoomTo();
+                    viewer.render();
+                } catch (smilesError) {
+                    console.error('Direct SMILES rendering failed:', smilesError);
+                    showMoleculeFallback(element, smiles);
+                }
+            });
+            
+    } catch (error) {
+        console.error('Error creating 3D viewer:', error);
+        showMoleculeFallback(element, smiles);
+    }
+}
+
+function showMoleculeFallback(element, smiles) {
+    // Show an attractive fallback when 3D rendering fails
+    element.innerHTML = `
+        <div class="d-flex align-items-center justify-content-center h-100 text-center">
+            <div>
+                <div class="mb-3">
+                    <i class="fas fa-molecule fa-4x text-primary"></i>
+                </div>
+                <h6 class="text-light mb-2">Molecular Formula</h6>
+                <code class="bg-dark text-info p-2 rounded">${smiles}</code>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        3D visualization temporarily unavailable<br>
+                        Structure shown as SMILES notation
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function setupFullscreenControls(element) {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (fullscreenBtn) {
+        fullscreenBtn.onclick = function() {
+            toggleFullscreen(element);
+        };
+    }
+}
+
+function toggleFullscreen(element) {
+    if (!document.fullscreenElement) {
+        element.requestFullscreen().then(() => {
+            // Resize viewer in fullscreen
+            if (currentViewer) {
+                setTimeout(() => {
+                    currentViewer.resize();
+                    currentViewer.render();
+                }, 100);
+            }
+            // Change button icon
+            const btn = document.getElementById('fullscreenBtn');
+            if (btn) btn.innerHTML = '<i class="fas fa-compress"></i>';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            // Resize viewer back to normal
+            if (currentViewer) {
+                setTimeout(() => {
+                    currentViewer.resize();
+                    currentViewer.render();
+                }, 100);
+            }
+            // Change button icon
+            const btn = document.getElementById('fullscreenBtn');
+            if (btn) btn.innerHTML = '<i class="fas fa-expand"></i>';
+        });
+    }
+}
+
+function showAtomInfo(atom) {
+    const infoPanel = document.getElementById('atomInfo');
+    const detailsEl = document.getElementById('atomDetails');
+    
+    if (infoPanel && detailsEl) {
+        detailsEl.innerHTML = `
+            <strong>Atom Details</strong><br>
+            Element: ${atom.elem || 'Unknown'}<br>
+            ${atom.bonds ? `Bonds: ${atom.bonds.length}` : ''}
+        `;
+        infoPanel.style.display = 'block';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            infoPanel.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function generateAIExplanation(smiles, properties) {
+    // Show the AI explanation section and typing indicator
+    const section = document.getElementById('aiExplanationSection');
+    const typing = document.getElementById('aiTyping');
+    const explanation = document.getElementById('aiExplanation');
+    
+    if (section && typing && explanation) {
+        section.style.display = 'block';
+        typing.style.display = 'flex !important';
+        explanation.innerHTML = '';
+        
+        // Simulate AI thinking time
+        setTimeout(() => {
+            typing.style.display = 'none !important';
+            
+            // Generate explanation based on properties
+            const explanationText = generateExplanationText(smiles, properties);
+            typeWriterEffect(explanation, explanationText);
+        }, 2000);
+    }
+}
+
+function generateExplanationText(smiles, properties) {
+    let explanation = `🧬 **AI Summary:**\n`;
+    explanation += `Structure: ${properties.num_atoms} atoms, ${properties.num_bonds} bonds. `;
+    explanation += `Potential: ${properties.qed >= 0.7 ? 'Excellent drug-likeness' : 'Research candidate'} (QED: ${properties.qed.toFixed(2)}). `;
+    explanation += `Status: ${properties.molecular_weight <= 500 ? 'Ideal weight' : 'High weight'} for oral delivery. `;
+    explanation += `Synthesis: ${properties.sa_score <= 4 ? 'Efficient' : 'Complex'} (SA: ${properties.sa_score.toFixed(1)}).`;
+    return explanation;
+}
+
+function typeWriterEffect(element, text, speed = 30) {
+    element.innerHTML = '';
+    let index = 0;
+    
+    function type() {
+        if (index < text.length) {
+            element.innerHTML += text.charAt(index);
+            index++;
+            setTimeout(type, speed);
+        }
+    }
+    
+    type();
+}
+</script>
+{% endblock %}

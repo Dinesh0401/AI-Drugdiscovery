@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}Molecular Generator - Discovery Platform{% endblock %}
+
+{% block head %}
+<style>
+    .latent-control {
+        margin-bottom: 1rem;
+    }
+    
+    .molecule-canvas {
+        border: 2px solid var(--bs-border-color);
+        border-radius: var(--bs-border-radius);
+        background-color: var(--bs-dark);
+        min-height: 300px;
+    }
+    
+    .property-badge {
+        font-size: 0.85rem;
+        margin: 2px;
+    }
+    
+    .loading-spinner {
+        display: none;
+    }
+    
+    .smiles-display {
+        font-family: 'Courier New', monospace;
+        background-color: var(--bs-gray-800);
+        padding: 0.75rem;
+        border-radius: var(--bs-border-radius);
+        border: 1px solid var(--bs-border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <!-- Latent Space Controls -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>Latent Space Explorer
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="latentForm">
+                    <div class="latent-control">
+                        <label for="dim1" class="form-label">Dimension 1: Complexity</label>
+                        <input type="range" class="form-range" id="dim1" min="-1" max="1" step="0.1" value="0">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Simple</span>
+                            <span id="dim1-value">0.0</span>
+                            <span>Complex</span>
+                        </div>
+                    </div>
+                    
+                    <div class="latent-control">
+                        <label for="dim2" class="form-label">Dimension 2: Polarity</label>
+                        <input type="range" class="form-range" id="dim2" min="-1" max="1" step="0.1" value="0">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Hydrophobic</span>
+                            <span id="dim2-value">0.0</span>
+                            <span>Hydrophilic</span>
+                        </div>
+                    </div>
+                    
+                    <div class="latent-control">
+                        <label for="dim3" class="form-label">Dimension 3: Ring Systems</label>
+                        <input type="range" class="form-range" id="dim3" min="-1" max="1" step="0.1" value="0">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Linear</span>
+                            <span id="dim3-value">0.0</span>
+                            <span>Cyclic</span>
+                        </div>
+                    </div>
+                    
+                    <div class="latent-control">
+                        <label for="dim4" class="form-label">Dimension 4: Heteroatoms</label>
+                        <input type="range" class="form-range" id="dim4" min="-1" max="1" step="0.1" value="0">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Carbon-rich</span>
+                            <span id="dim4-value">0.0</span>
+                            <span>Heteroatom-rich</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-flask me-2"></i>Generate Molecule
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="randomBtn">
+                            <i class="fas fa-dice me-2"></i>Random Molecule
+                        </button>
+                        <button type="button" class="btn btn-outline-info" id="resetBtn">
+                            <i class="fas fa-undo me-2"></i>Reset Parameters
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Loading spinner -->
+                <div class="text-center mt-3 loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Generating...</span>
+                    </div>
+                    <p class="small text-muted mt-2">Generating molecule...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Property Optimization -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bullseye me-2"></i>Property Optimization
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="optimizationForm">
+                    <div class="mb-3">
+                        <label for="targetQED" class="form-label small">Target QED Score</label>
+                        <input type="range" class="form-range" id="targetQED" min="0" max="1" step="0.1" value="0.7">
+                        <span class="small text-muted" id="targetQED-value">0.7</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="targetSA" class="form-label small">Target SA Score (max)</label>
+                        <input type="range" class="form-range" id="targetSA" min="1" max="10" step="0.5" value="6">
+                        <span class="small text-muted" id="targetSA-value">6.0</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="targetLogP" class="form-label small">Target LogP</label>
+                        <input type="range" class="form-range" id="targetLogP" min="-2" max="6" step="0.5" value="2">
+                        <span class="small text-muted" id="targetLogP-value">2.0</span>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="fas fa-search me-1"></i>Find Optimized Molecules
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <!-- Generated Molecule Display -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-atom me-2"></i>Generated Molecule
+                </h5>
+                <span class="badge bg-secondary" id="moleculeStatus">Ready to generate</span>
+            </div>
+            <div class="card-body">
+                <!-- Molecular Visualization -->
+                <div class="text-center mb-4">
+                    <canvas id="moleculeCanvas" class="molecule-canvas" width="600" height="300"></canvas>
+                </div>
+                
+                <!-- SMILES Display -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">SMILES String:</label>
+                    <div class="smiles-display" id="smilesDisplay">
+                        Generate a molecule to see its SMILES representation
+                    </div>
+                </div>
+                
+                <!-- Molecular Properties -->
+                <div class="row" id="propertiesSection" style="display: none;">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Basic Properties</h6>
+                        <div class="property-grid">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Molecular Weight:</span>
+                                <span class="fw-bold" id="prop-mw">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">LogP:</span>
+                                <span class="fw-bold" id="prop-logp">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">H-Bond Donors:</span>
+                                <span class="fw-bold" id="prop-hbd">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">H-Bond Acceptors:</span>
+                                <span class="fw-bold" id="prop-hba">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">TPSA:</span>
+                                <span class="fw-bold" id="prop-tpsa">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Rotatable Bonds:</span>
+                                <span class="fw-bold" id="prop-rotbonds">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Drug-Likeness</h6>
+                        <div class="property-grid">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">QED Score:</span>
+                                <span class="fw-bold" id="prop-qed">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">SA Score:</span>
+                                <span class="fw-bold" id="prop-sa">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Lipinski Violations:</span>
+                                <span class="fw-bold" id="prop-lipinski">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Drug-Like:</span>
+                                <span class="fw-bold" id="prop-druglike">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Synthetic Feasible:</span>
+                                <span class="fw-bold" id="prop-synthetic">-</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Property badges -->
+                        <div class="mt-3">
+                            <div id="propertyBadges"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Optimization Results -->
+        <div class="card mt-4" id="optimizationResults" style="display: none;">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Optimized Molecules
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="optimizedMolecules" class="row g-3">
+                    <!-- Optimized molecules will be populated here -->
+                </div>
+            </div>
+            
+            <!-- AI Explanation Section -->
+            <div id="aiExplanationSection" class="card mt-4" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-brain me-2"></i>AI Generation Explanation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="aiTyping" class="d-flex align-items-center mb-3" style="display: none !important;">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <small class="text-muted">AI is explaining the generation process...</small>
+                    </div>
+                    <div id="aiExplanation" class="text-light"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/canvas-renderer.js') }}"></script>
+<script>
+// Initialize the molecular generator interface
+document.addEventListener('DOMContentLoaded', function() {
+    initializeLatentControls();
+    initializeGenerationForm();
+    initializeOptimizationForm();
+    
+    // Initialize canvas renderer
+    const canvas = document.getElementById('moleculeCanvas');
+    if (canvas) {
+        window.moleculeRenderer = new MoleculeRenderer(canvas);
+    }
+});
+
+function initializeLatentControls() {
+    const sliders = ['dim1', 'dim2', 'dim3', 'dim4'];
+    
+    sliders.forEach(slider => {
+        const element = document.getElementById(slider);
+        const valueDisplay = document.getElementById(`${slider}-value`);
+        
+        element.addEventListener('input', function() {
+            valueDisplay.textContent = parseFloat(this.value).toFixed(1);
+        });
+    });
+    
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        sliders.forEach(slider => {
+            document.getElementById(slider).value = 0;
+            document.getElementById(`${slider}-value`).textContent = '0.0';
+        });
+    });
+}
+
+function initializeGenerationForm() {
+    const form = document.getElementById('latentForm');
+    const randomBtn = document.getElementById('randomBtn');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        generateMolecule();
+    });
+    
+    randomBtn.addEventListener('click', function() {
+        generateRandomMolecule();
+    });
+}
+
+function initializeOptimizationForm() {
+    const form = document.getElementById('optimizationForm');
+    const sliders = ['targetQED', 'targetSA', 'targetLogP'];
+    
+    // Update slider value displays
+    sliders.forEach(slider => {
+        const element = document.getElementById(slider);
+        const valueDisplay = document.getElementById(`${slider}-value`);
+        
+        element.addEventListener('input', function() {
+            valueDisplay.textContent = parseFloat(this.value).toFixed(1);
+        });
+    });
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        runOptimization();
+    });
+}
+
+async function generateMolecule() {
+    showLoading(true);
+    updateStatus('Generating...');
+    
+    const latentParams = {
+        dim1: parseFloat(document.getElementById('dim1').value),
+        dim2: parseFloat(document.getElementById('dim2').value),
+        dim3: parseFloat(document.getElementById('dim3').value),
+        dim4: parseFloat(document.getElementById('dim4').value)
+    };
+    
+    try {
+        const response = await fetch('/api/generate_molecule', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(latentParams)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayMolecule(data);
+            updateStatus('Generated successfully');
+        } else {
+            updateStatus('Generation failed');
+            console.error('Generation error:', data.error);
+        }
+    } catch (error) {
+        updateStatus('Network error');
+        console.error('Network error:', error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function generateRandomMolecule() {
+    showLoading(true);
+    updateStatus('Generating random molecule...');
+    
+    try {
+        const response = await fetch('/api/random_molecule');
+        const data = await response.json();
+        
+        if (data.success) {
+            displayMolecule(data);
+            updateStatus('Random molecule generated');
+        } else {
+            updateStatus('Random generation failed');
+            console.error('Random generation error:', data.error);
+        }
+    } catch (error) {
+        updateStatus('Network error');
+        console.error('Network error:', error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function runOptimization() {
+    updateStatus('Running optimization...');
+    
+    const targetProperties = {
+        target_qed: parseFloat(document.getElementById('targetQED').value),
+        target_sa: parseFloat(document.getElementById('targetSA').value),
+        target_logp: parseFloat(document.getElementById('targetLogP').value)
+    };
+    
+    try {
+        const response = await fetch('/api/optimize_properties', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(targetProperties)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayOptimizationResults(data.molecules);
+            updateStatus('Optimization complete');
+        } else {
+            updateStatus('Optimization failed');
+            console.error('Optimization error:', data.error);
+        }
+    } catch (error) {
+        updateStatus('Network error');
+        console.error('Network error:', error);
+    }
+}
+
+function displayMolecule(data) {
+    // Update SMILES display
+    document.getElementById('smilesDisplay').textContent = data.smiles;
+    
+    // Display properties
+    if (data.properties) {
+        displayProperties(data.properties);
+        document.getElementById('propertiesSection').style.display = 'block';
+        
+        // Generate AI explanation for the generated molecule
+        generateAIExplanationForGeneration(data.smiles, data.properties);
+    }
+    
+    // Render molecule on canvas
+    if (window.moleculeRenderer) {
+        window.moleculeRenderer.renderMolecule(data.smiles, data.properties);
+    }
+}
+
+function displayProperties(properties) {
+    // Basic properties
+    document.getElementById('prop-mw').textContent = properties.molecular_weight + ' Da';
+    document.getElementById('prop-logp').textContent = properties.logp;
+    document.getElementById('prop-hbd').textContent = properties.hbd;
+    document.getElementById('prop-hba').textContent = properties.hba;
+    document.getElementById('prop-tpsa').textContent = properties.tpsa + ' Ų';
+    document.getElementById('prop-rotbonds').textContent = properties.rotatable_bonds;
+    
+    // Drug-likeness
+    document.getElementById('prop-qed').textContent = properties.qed_score;
+    document.getElementById('prop-sa').textContent = properties.sa_score;
+    document.getElementById('prop-lipinski').textContent = properties.lipinski_violations;
+    document.getElementById('prop-druglike').textContent = properties.drug_like ? 'Yes' : 'No';
+    document.getElementById('prop-synthetic').textContent = properties.synthetic_feasible ? 'Yes' : 'No';
+    
+    // Property badges
+    const badgeContainer = document.getElementById('propertyBadges');
+    badgeContainer.innerHTML = '';
+    
+    if (properties.drug_like) {
+        badgeContainer.innerHTML += '<span class="badge bg-success property-badge">Drug-Like</span>';
+    }
+    if (properties.synthetic_feasible) {
+        badgeContainer.innerHTML += '<span class="badge bg-info property-badge">Synthetically Feasible</span>';
+    }
+    if (properties.lipinski_violations === 0) {
+        badgeContainer.innerHTML += '<span class="badge bg-success property-badge">Lipinski Compliant</span>';
+    }
+    if (properties.qed_score >= 0.7) {
+        badgeContainer.innerHTML += '<span class="badge bg-primary property-badge">High QED</span>';
+    }
+}
+
+function displayOptimizationResults(molecules) {
+    const container = document.getElementById('optimizedMolecules');
+    container.innerHTML = '';
+    
+    molecules.forEach((mol, index) => {
+        const molCard = document.createElement('div');
+        molCard.className = 'col-md-6';
+        molCard.innerHTML = `
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <small>Optimized Molecule ${index + 1}</small>
+                </div>
+                <div class="card-body">
+                    <div class="smiles-display small mb-2">${mol.smiles}</div>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">QED: <strong>${mol.properties.qed_score}</strong></small><br>
+                            <small class="text-muted">SA: <strong>${mol.properties.sa_score}</strong></small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">MW: <strong>${mol.properties.molecular_weight}</strong></small><br>
+                            <small class="text-muted">LogP: <strong>${mol.properties.logp}</strong></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(molCard);
+    });
+    
+    document.getElementById('optimizationResults').style.display = 'block';
+}
+
+function showLoading(show) {
+    document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+}
+
+function updateStatus(message) {
+    document.getElementById('moleculeStatus').textContent = message;
+}
+
+function generateAIExplanationForGeneration(smiles, properties) {
+    // Show the AI explanation section and typing indicator
+    const section = document.getElementById('aiExplanationSection');
+    const typing = document.getElementById('aiTyping');
+    const explanation = document.getElementById('aiExplanation');
+    
+    if (section && typing && explanation) {
+        section.style.display = 'block';
+        typing.style.display = 'flex !important';
+        explanation.innerHTML = '';
+        
+        // Simulate AI thinking time
+        setTimeout(() => {
+            typing.style.display = 'none !important';
+            
+            // Generate explanation based on how the molecule was created
+            const explanationText = generateGenerationExplanationText(smiles, properties);
+            typeWriterEffect(explanation, explanationText);
+        }, 2000);
+    }
+}
+
+function generateGenerationExplanationText(smiles, properties) {
+    let explanation = `🤖 **Deep Learning Agent Report (LSTM State: Optimizing):**\n`;
+    explanation += `Generated structure with ${properties.num_atoms || 'AI-optimized'} atoms. `;
+    explanation += `Design Focus: ${properties.qed_score >= 0.6 ? 'High bio-affinity' : 'Structural novelty'}. `;
+    explanation += `Metrics: QED ${properties.qed_score.toFixed(2)}, SA ${properties.sa_score.toFixed(1)}. `;
+    explanation += `Outcome: Ready for virtual screening.`;
+    return explanation;
+}
+
+function typeWriterEffect(element, text, speed = 30) {
+    element.innerHTML = '';
+    let index = 0;
+    
+    function type() {
+        if (index < text.length) {
+            element.innerHTML += text.charAt(index);
+            index++;
+            setTimeout(type, speed);
+        }
+    }
+    
+    type();
+}
+</script>
+{% endblock %}

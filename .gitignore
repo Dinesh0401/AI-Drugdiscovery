@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+dist/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDEs
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Trained model artifacts — regenerate via scripts/train_toxicity_models.py
+# (metrics.json is intentionally tracked so reviewers see AUC numbers)
+models/*.joblib
+
+# Dataset cache — regenerate via training script
+data/tdc_cache/
+
+# Replit local state inside the legacy demo
+ChemDesigner/.local/state/
