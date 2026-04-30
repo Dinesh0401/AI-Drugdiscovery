@@ -17,22 +17,51 @@ from chemscreen.druglikeness import (
     evaluate_lipinski,
     evaluate_veber,
 )
+from chemscreen.ranking import filter_top_k, rank_candidates, screen_smiles
+from chemscreen.scoring import (
+    CandidateScore,
+    ScoreComponents,
+    ScoreWeights,
+    ScoringMethod,
+    aggregate,
+    lipinski_component,
+    score_candidate,
+    synthesis_component,
+    toxicity_component,
+)
 from chemscreen.synthesis import is_synthetically_feasible, sa_score
 
 __all__ = [
+    # descriptors
     "MolecularDescriptors",
-    "DrugLikeness",
-    "RuleResult",
     "parse_smiles",
     "is_valid_smiles",
     "canonical_smiles",
     "compute_descriptors",
     "morgan_fingerprint",
+    # drug-likeness
+    "DrugLikeness",
+    "RuleResult",
     "evaluate_lipinski",
     "evaluate_veber",
     "evaluate_ghose",
     "compute_qed",
     "evaluate_druglikeness",
+    # synthesis
     "sa_score",
     "is_synthetically_feasible",
+    # scoring
+    "ScoreWeights",
+    "ScoreComponents",
+    "ScoringMethod",
+    "CandidateScore",
+    "lipinski_component",
+    "synthesis_component",
+    "toxicity_component",
+    "aggregate",
+    "score_candidate",
+    # ranking
+    "rank_candidates",
+    "screen_smiles",
+    "filter_top_k",
 ]
