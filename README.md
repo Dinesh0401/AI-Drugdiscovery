@@ -18,7 +18,7 @@ held-out test-set numbers.
 |---|---|---|
 | **1** | Cheminformatics core (descriptors, drug-likeness, SA score) + tests | ✅ done |
 | **2** | Toxicity ML (Ames, hERG, DILI) + structural alerts | ✅ done |
-| 3 | Multi-objective scoring engine | planned |
+| **3** | Multi-objective scoring engine + ranking | ✅ done |
 | 4 | Similarity search vs FDA-approved drugs | planned |
 | 5 | Explainability layer | planned |
 | 6 | Operational modes (screening / lead-opt / risk) | planned |
@@ -44,6 +44,31 @@ produces the same results given a fixed random seed (42).
 
 ---
 
+## Multi-objective scoring (Phase 3)
+
+Combine QED, Lipinski compliance, synthetic accessibility, and toxicity into
+a single ranked score. Two methods ship in the same module:
+
+| Method | Formula | When to use |
+|---|---|---|
+| **Linear** *(default)* | `final = w_qed·QED + w_lip·LipFrac + w_sa·SAease + w_tox·ToxPenalty` | Quick screening; what most reviewers expect |
+| **Desirability** | weighted geometric mean of the same components (Derringer & Suich, 1980) | Multi-objective optimization where any single weak component should disqualify a candidate |
+
+Default weights `0.3 / 0.2 / 0.2 / 0.3` are configurable. Sample output from
+`uv run python scripts/score_examples.py`:
+
+```
+=== LINEAR (weights: qed=0.3 lip=0.2 sa=0.2 tox=0.3) ===
+rank name              qed    lip     sa    tox    final
+1    ibuprofen       0.822  1.000  0.868  0.818    0.865
+2    aspirin         0.550  1.000  0.936  0.902    0.823
+3    caffeine        0.538  1.000  0.856  0.722    0.749
+...
+7    atorvastatin    0.163  0.500  0.744  0.504    0.449   <- Lipinski violator
+```
+
+---
+
 ## Module layout
 
 ```
@@ -52,6 +77,8 @@ chemscreen/
 ├── druglikeness.py      Lipinski, Veber, Ghose, QED
 ├── synthesis.py         Synthetic Accessibility (Ertl & Schuffenhauer)
 ├── reference_data.py    Common formula -> SMILES lookup
+├── scoring.py           Multi-objective scoring (linear + desirability)
+├── ranking.py           rank_candidates / screen_smiles / filter_top_k
 └── toxicity/
     ├── base.py          ToxicityPrediction + RFToxicityModel
     ├── ames.py          Ames mutagenicity endpoint
@@ -60,10 +87,13 @@ chemscreen/
     ├── alerts.py        Brenk + PAINS structural alerts
     └── ensemble.py      predict_all_toxicity convenience
 
-scripts/train_toxicity_models.py    Train and persist all 3 RFs from TDC
-models/                              Persisted joblib estimators (gitignored)
-tests/                               97 tests, 97% coverage
-ChemDesigner/                        Legacy Flask demo (kept for reference)
+scripts/
+├── train_toxicity_models.py    Train and persist all 3 RFs from TDC
+└── score_examples.py            Demo scoring on canonical molecules
+
+models/                  Persisted joblib estimators (gitignored)
+tests/                   134 tests, 97% coverage
+ChemDesigner/            Legacy Flask demo (kept for reference)
 ```
 
 Public functions return `None` on invalid input rather than raising.
