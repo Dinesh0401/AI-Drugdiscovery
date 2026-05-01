@@ -18,6 +18,15 @@ from chemscreen.druglikeness import (
     evaluate_veber,
 )
 from chemscreen.explain import Explanation, explain_molecule
+from chemscreen.modes import (
+    LeadOptimizationReport,
+    RiskReport,
+    ScreeningReport,
+    StructuralVariant,
+    analyze_risk,
+    screen_batch,
+    suggest_variants,
+)
 from chemscreen.ranking import filter_top_k, rank_candidates, screen_smiles
 from chemscreen.similarity import (
     SimilarMolecule,
@@ -83,4 +92,12 @@ __all__ = [
     # explain
     "Explanation",
     "explain_molecule",
+    # operational modes (Phase 6)
+    "ScreeningReport",
+    "screen_batch",
+    "RiskReport",
+    "analyze_risk",
+    "StructuralVariant",
+    "LeadOptimizationReport",
+    "suggest_variants",
 ]
