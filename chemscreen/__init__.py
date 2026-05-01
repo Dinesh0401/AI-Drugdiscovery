@@ -18,6 +18,14 @@ from chemscreen.druglikeness import (
     evaluate_veber,
 )
 from chemscreen.ranking import filter_top_k, rank_candidates, screen_smiles
+from chemscreen.similarity import (
+    SimilarMolecule,
+    filter_by_class,
+    find_similar,
+    reference_size,
+    set_reference_drugs,
+    tanimoto,
+)
 from chemscreen.scoring import (
     CandidateScore,
     ScoreComponents,
@@ -64,4 +72,11 @@ __all__ = [
     "rank_candidates",
     "screen_smiles",
     "filter_top_k",
+    # similarity
+    "SimilarMolecule",
+    "tanimoto",
+    "find_similar",
+    "filter_by_class",
+    "set_reference_drugs",
+    "reference_size",
 ]
