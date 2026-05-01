@@ -20,7 +20,7 @@ held-out test-set numbers.
 | **2** | Toxicity ML (Ames, hERG, DILI) + structural alerts | ✅ done |
 | **3** | Multi-objective scoring engine + ranking | ✅ done |
 | **4** | Similarity search vs approved-drug reference set | ✅ done |
-| 5 | Explainability layer | planned |
+| **5** | Explainability layer (deterministic, feature-grounded) | ✅ done |
 | 6 | Operational modes (screening / lead-opt / risk) | planned |
 | 7 | Validation harness | planned |
 | 8 | Flask UI integration | planned |
@@ -100,6 +100,46 @@ via `set_reference_drugs(...)`.
 
 ---
 
+## Explainability (Phase 5)
+
+`explain_molecule(smiles)` runs every analysis (descriptors, drug-likeness
+rules, SA score, toxicity ML, structural alerts, similarity search,
+multi-objective score) and produces a structured `Explanation` with:
+
+  - **severity** — `favorable` / `marginal` / `unfavorable`
+  - **headline** — single-line verdict including the score
+  - **bullets** — feature-grounded findings (every claim references the
+    actual computed number)
+  - **recommendation** — concrete next step for a chemist
+
+There is no LLM in this layer. The templates are deterministic, so
+explanations are reproducible and cannot hallucinate. A future polish
+step can paraphrase these sentences with a Hugging Face model if
+desired, but the *content* is computed.
+
+Example output (`scripts/explain_examples.py` for atorvastatin):
+
+```
+Unfavorable candidate (score 0.45) - flagged for Lipinski violation + DILI hepatotoxicity risk
+
+  - Lipinski Rule of Five: FAIL (MW=558.65 > 500; LogP=6.31 > 5)
+  - QED = 0.16 (low QED; range 0..1)
+  - MW = 558.7 Da, LogP = 6.31, TPSA = 111.8 A^2
+  - Veber rule: FAIL (RotatableBonds=12 > 10)
+  - SA score = 3.31 (moderate synthetic complexity; 1=trivial, 10=very hard)
+  - Ames mutagenicity: LOW risk (probability 0.39; RF on Morgan FP, TDC AUC 0.85+)
+  - hERG cardiac inhibition: MODERATE risk (probability 0.34; ...)
+  - DILI hepatotoxicity: HIGH risk (probability 0.75; ...)
+  - Structural alerts (Brenk + PAINS): none
+  - Identical to a reference drug; closest neighbors: rosuvastatin (0.31, Statin); pravastatin (0.24, Statin)
+
+Recommendation: Reject for oral-drug development. Lipinski rule failure
+(typically MW or LogP) predicts poor oral absorption. Consider scaffold
+simplification or alternative delivery routes.
+```
+
+---
+
 ## Module layout
 
 ```
@@ -111,6 +151,7 @@ chemscreen/
 ├── scoring.py           Multi-objective scoring (linear + desirability)
 ├── ranking.py           rank_candidates / screen_smiles / filter_top_k
 ├── similarity.py        Tanimoto search vs approved-drug reference
+├── explain.py           Deterministic feature-grounded explanations
 ├── data/
 │   └── approved_drugs.py   Curated 77-drug reference (25+ classes)
 └── toxicity/
@@ -124,10 +165,11 @@ chemscreen/
 scripts/
 ├── train_toxicity_models.py    Train and persist all 3 RFs from TDC
 ├── score_examples.py            Demo scoring on canonical molecules
-└── similarity_examples.py       Demo similarity search
+├── similarity_examples.py       Demo similarity search
+└── explain_examples.py          Demo full explanations across severity classes
 
 models/                  Persisted joblib estimators (gitignored)
-tests/                   156 tests, 98% coverage
+tests/                   182 tests, 96% coverage
 ChemDesigner/            Legacy Flask demo (kept for reference)
 ```
 
