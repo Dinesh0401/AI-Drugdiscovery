@@ -21,7 +21,7 @@ held-out test-set numbers.
 | **3** | Multi-objective scoring engine + ranking | ✅ done |
 | **4** | Similarity search vs approved-drug reference set | ✅ done |
 | **5** | Explainability layer (deterministic, feature-grounded) | ✅ done |
-| 6 | Operational modes (screening / lead-opt / risk) | planned |
+| **6** | Operational modes (screening / risk / lead-opt) | ✅ done |
 | 7 | Validation harness | planned |
 | 8 | Flask UI integration | planned |
 
@@ -140,6 +140,38 @@ simplification or alternative delivery routes.
 
 ---
 
+## Operational modes (Phase 6)
+
+Three named workflows that map to real medicinal-chemistry tasks. Each
+returns a structured report (dataclass) — easy to consume from CLI,
+Python, or a future Flask UI.
+
+```python
+from chemscreen.modes import screen_batch, analyze_risk, suggest_variants
+
+# 1. Screening — score and rank a list, with rejection accounting
+report = screen_batch(["CC(=O)Oc1ccccc1C(=O)O", "CC(C)Cc1ccc(C(C)C(=O)O)cc1"],
+                      top_k=10, require_lipinski=True)
+
+# 2. Risk analysis — focused tox + alerts + similar-drug context
+risk = analyze_risk(atorvastatin)
+# -> RiskReport(risk_level="high", high_risk_endpoints=["dili"], ...)
+
+# 3. Lead optimization — bioisostere swaps + re-scored variants
+opt = suggest_variants(atorvastatin)
+# -> LeadOptimizationReport(parent_score=0.45, variants=[...], improved_variants=[...])
+```
+
+The lead-optimization rules are real medchem bioisostere transformations
+(Meanwell 2011): methyl→trifluoromethyl (metabolic stability),
+hydroxyl→fluoro (H-bond donor swap), chloro↔fluoro (halogen size),
+primary amine→hydroxyl (basicity reduction), methoxy→hydroxyl
+(demethylation), and ethyl→methyl (chain trimming). Not generative —
+deterministic SMARTS replacements, atom maps stripped, fragmented
+products filtered.
+
+---
+
 ## Module layout
 
 ```
@@ -154,22 +186,27 @@ chemscreen/
 ├── explain.py           Deterministic feature-grounded explanations
 ├── data/
 │   └── approved_drugs.py   Curated 77-drug reference (25+ classes)
-└── toxicity/
-    ├── base.py          ToxicityPrediction + RFToxicityModel
-    ├── ames.py          Ames mutagenicity endpoint
-    ├── herg.py          hERG cardiac-risk endpoint
-    ├── dili.py          DILI hepatotoxicity endpoint
-    ├── alerts.py        Brenk + PAINS structural alerts
-    └── ensemble.py      predict_all_toxicity convenience
+├── toxicity/
+│   ├── base.py          ToxicityPrediction + RFToxicityModel
+│   ├── ames.py          Ames mutagenicity endpoint
+│   ├── herg.py          hERG cardiac-risk endpoint
+│   ├── dili.py          DILI hepatotoxicity endpoint
+│   ├── alerts.py        Brenk + PAINS structural alerts
+│   └── ensemble.py      predict_all_toxicity convenience
+└── modes/
+    ├── screening.py        Batch screen + rejection accounting
+    ├── risk_analysis.py    Focused toxicity report
+    └── lead_optimization.py  Bioisostere-swap variant generation
 
 scripts/
 ├── train_toxicity_models.py    Train and persist all 3 RFs from TDC
 ├── score_examples.py            Demo scoring on canonical molecules
 ├── similarity_examples.py       Demo similarity search
-└── explain_examples.py          Demo full explanations across severity classes
+├── explain_examples.py          Demo full explanations across severity classes
+└── modes_examples.py            Demo all three operational modes
 
 models/                  Persisted joblib estimators (gitignored)
-tests/                   182 tests, 96% coverage
+tests/                   205 tests, 94% coverage
 ChemDesigner/            Legacy Flask demo (kept for reference)
 ```
 
