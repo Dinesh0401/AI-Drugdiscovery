@@ -22,7 +22,7 @@ held-out test-set numbers.
 | **4** | Similarity search vs approved-drug reference set | ✅ done |
 | **5** | Explainability layer (deterministic, feature-grounded) | ✅ done |
 | **6** | Operational modes (screening / risk / lead-opt) | ✅ done |
-| 7 | Validation harness | planned |
+| **7** | Validation harness (drugs vs decoys benchmark) | ✅ done |
 | 8 | Flask UI integration | planned |
 
 ---
@@ -140,6 +140,46 @@ simplification or alternative delivery routes.
 
 ---
 
+## System-level validation (Phase 7)
+
+Drug-vs-decoy classification benchmark — runs the deterministic
+chemscreen scoring (QED + Lipinski + SA, **toxicity weight=0** to avoid
+indirect data leakage from TDC training data) on:
+
+  - 77 FDA-approved drugs (positives)
+  - 88 curated non-drug commercial chemicals (negatives) — solvents,
+    industrial intermediates, agrochemicals, simple aromatics
+
+Reproducible from `uv run python scripts/run_benchmark.py`. Results
+saved to [data/benchmark_results.json](data/benchmark_results.json):
+
+| Metric | Value |
+|---|---|
+| **ROC-AUC** | **0.652** |
+| Accuracy | 0.685 |
+| Sensitivity | 0.442 |
+| Specificity | 0.898 |
+| F1 | 0.567 |
+| Drug score (mean ± std) | 0.785 ± 0.115 |
+| Decoy score (mean ± std) | 0.763 ± 0.053 |
+
+This is the **honest baseline** for rule-based drug-likeness scoring on
+random commercial chemicals. Many decoys (small simple aromatics like
+benzene, urea, pyridine) pass Lipinski, have moderate QED, and are
+trivially synthesizable, so the scoring components don't dramatically
+separate the two classes.
+
+That's the canonical limitation of physchem-only scoring; real
+differentiation comes from bioactivity (target binding) and toxicity
+(separately benchmarked at AUC 0.85+ in Phase 2).
+
+The decoys deliberately exclude the AMES/hERG/DILI training data, so
+adding the trained tox models would not introduce direct leakage but
+*could* introduce indirect distribution overlap — hence keeping them out
+of the canonical benchmark and reporting tox AUCs as their own claim.
+
+---
+
 ## Operational modes (Phase 6)
 
 Three named workflows that map to real medicinal-chemistry tasks. Each
@@ -184,8 +224,10 @@ chemscreen/
 ├── ranking.py           rank_candidates / screen_smiles / filter_top_k
 ├── similarity.py        Tanimoto search vs approved-drug reference
 ├── explain.py           Deterministic feature-grounded explanations
+├── validation.py        Drugs-vs-decoys benchmark (ROC-AUC harness)
 ├── data/
-│   └── approved_drugs.py   Curated 77-drug reference (25+ classes)
+│   ├── approved_drugs.py   Curated 77-drug reference (25+ classes)
+│   └── decoys.py            88 curated non-drug molecules for benchmarking
 ├── toxicity/
 │   ├── base.py          ToxicityPrediction + RFToxicityModel
 │   ├── ames.py          Ames mutagenicity endpoint
@@ -203,10 +245,11 @@ scripts/
 ├── score_examples.py            Demo scoring on canonical molecules
 ├── similarity_examples.py       Demo similarity search
 ├── explain_examples.py          Demo full explanations across severity classes
-└── modes_examples.py            Demo all three operational modes
+├── modes_examples.py            Demo all three operational modes
+└── run_benchmark.py             Drugs-vs-decoys ROC-AUC benchmark
 
 models/                  Persisted joblib estimators (gitignored)
-tests/                   205 tests, 94% coverage
+tests/                   219 tests, 94% coverage
 ChemDesigner/            Legacy Flask demo (kept for reference)
 ```
 
