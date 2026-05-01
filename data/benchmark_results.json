@@ -1,0 +1,28 @@
+{
+  "n_positive": 77,
+  "n_negative": 88,
+  "n_skipped": 0,
+  "auc": 0.6524498229043684,
+  "accuracy": 0.6848484848484848,
+  "sensitivity": 0.44155844155844154,
+  "specificity": 0.8977272727272727,
+  "f1": 0.5666666666666667,
+  "optimal_threshold": 0.8310321738323572,
+  "confusion_matrix": {
+    "tp": 34,
+    "fp": 9,
+    "tn": 79,
+    "fn": 43
+  },
+  "positive_score_mean": 0.7845392626595762,
+  "positive_score_std": 0.11475979538386455,
+  "negative_score_mean": 0.7628018417510294,
+  "negative_score_std": 0.053422772456240504,
+  "method": "linear",
+  "weights": {
+    "qed": 0.4,
+    "lipinski": 0.3,
+    "synthesis": 0.3,
+    "toxicity": 0.0
+  }
+}
