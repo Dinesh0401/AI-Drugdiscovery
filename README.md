@@ -19,7 +19,7 @@ held-out test-set numbers.
 | **1** | Cheminformatics core (descriptors, drug-likeness, SA score) + tests | ✅ done |
 | **2** | Toxicity ML (Ames, hERG, DILI) + structural alerts | ✅ done |
 | **3** | Multi-objective scoring engine + ranking | ✅ done |
-| 4 | Similarity search vs FDA-approved drugs | planned |
+| **4** | Similarity search vs approved-drug reference set | ✅ done |
 | 5 | Explainability layer | planned |
 | 6 | Operational modes (screening / lead-opt / risk) | planned |
 | 7 | Validation harness | planned |
@@ -69,6 +69,37 @@ rank name              qed    lip     sa    tox    final
 
 ---
 
+## Similarity search (Phase 4)
+
+Tanimoto fingerprint search against a curated 77-drug reference set
+covering 25+ therapeutic classes (NSAIDs, statins, SSRIs, beta blockers,
+antibiotics, etc.). Vectorized over the whole reference matrix in numpy
+for ~50x speedup vs per-row Python loops.
+
+```python
+from chemscreen import find_similar
+
+results = find_similar("CC(=O)Oc1ccccc1C(=O)O", top_k=5)  # aspirin
+for hit in results:
+    print(f"{hit.similarity:.3f}  {hit.name}  ({hit.drug_class})")
+```
+
+Sample output validates same-class clustering:
+
+```
+--- metoprolol query ---
+1.000  metoprolol      (Beta blocker)
+0.622  atenolol        (Beta blocker)
+0.617  bisoprolol      (Beta blocker)
+0.449  propranolol     (Beta blocker)
+0.273  carvedilol      (Beta blocker)
+```
+
+Swap the bundled set for a full DrugBank or ChEMBL approved-drug export
+via `set_reference_drugs(...)`.
+
+---
+
 ## Module layout
 
 ```
@@ -79,6 +110,9 @@ chemscreen/
 ├── reference_data.py    Common formula -> SMILES lookup
 ├── scoring.py           Multi-objective scoring (linear + desirability)
 ├── ranking.py           rank_candidates / screen_smiles / filter_top_k
+├── similarity.py        Tanimoto search vs approved-drug reference
+├── data/
+│   └── approved_drugs.py   Curated 77-drug reference (25+ classes)
 └── toxicity/
     ├── base.py          ToxicityPrediction + RFToxicityModel
     ├── ames.py          Ames mutagenicity endpoint
@@ -89,10 +123,11 @@ chemscreen/
 
 scripts/
 ├── train_toxicity_models.py    Train and persist all 3 RFs from TDC
-└── score_examples.py            Demo scoring on canonical molecules
+├── score_examples.py            Demo scoring on canonical molecules
+└── similarity_examples.py       Demo similarity search
 
 models/                  Persisted joblib estimators (gitignored)
-tests/                   134 tests, 97% coverage
+tests/                   156 tests, 98% coverage
 ChemDesigner/            Legacy Flask demo (kept for reference)
 ```
 
