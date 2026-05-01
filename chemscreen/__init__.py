@@ -17,6 +17,7 @@ from chemscreen.druglikeness import (
     evaluate_lipinski,
     evaluate_veber,
 )
+from chemscreen.explain import Explanation, explain_molecule
 from chemscreen.ranking import filter_top_k, rank_candidates, screen_smiles
 from chemscreen.similarity import (
     SimilarMolecule,
@@ -79,4 +80,7 @@ __all__ = [
     "filter_by_class",
     "set_reference_drugs",
     "reference_size",
+    # explain
+    "Explanation",
+    "explain_molecule",
 ]
