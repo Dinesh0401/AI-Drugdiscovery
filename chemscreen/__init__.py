@@ -48,6 +48,11 @@ from chemscreen.scoring import (
     toxicity_component,
 )
 from chemscreen.synthesis import is_synthetically_feasible, sa_score
+from chemscreen.validation import (
+    BENCHMARK_WEIGHTS,
+    BenchmarkResult,
+    run_benchmark,
+)
 
 __all__ = [
     # descriptors
@@ -100,4 +105,8 @@ __all__ = [
     "StructuralVariant",
     "LeadOptimizationReport",
     "suggest_variants",
+    # validation (Phase 7)
+    "BENCHMARK_WEIGHTS",
+    "BenchmarkResult",
+    "run_benchmark",
 ]
