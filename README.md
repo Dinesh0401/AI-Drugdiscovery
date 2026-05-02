@@ -23,7 +23,7 @@ held-out test-set numbers.
 | **5** | Explainability layer (deterministic, feature-grounded) | ✅ done |
 | **6** | Operational modes (screening / risk / lead-opt) | ✅ done |
 | **7** | Validation harness (drugs vs decoys benchmark) | ✅ done |
-| 8 | Flask UI integration | planned |
+| **8** | Flask UI wired to chemscreen | ✅ done |
 
 ---
 
@@ -136,6 +136,45 @@ Unfavorable candidate (score 0.45) - flagged for Lipinski violation + DILI hepat
 Recommendation: Reject for oral-drug development. Lipinski rule failure
 (typically MW or LogP) predicts poor oral absorption. Consider scaffold
 simplification or alternative delivery routes.
+```
+
+---
+
+## Web UI (Phase 8)
+
+The legacy `ChemDesigner/` Flask shell has been rewired to consume the
+chemscreen package. The fake "latent space generator" / "LSTM state"
+indicators are gone; in their place are four real, scientifically-backed
+pages:
+
+| Route | Mode | What it does |
+|---|---|---|
+| `/analyze`  | Phase 1–5 deep-dive | full Explanation with severity, bullets, recommendation |
+| `/screen`   | Phase 6 screening    | batch score + rank a list of SMILES, with rejection accounting |
+| `/risk`     | Phase 6 risk         | toxicity + structural alerts + closest approved drugs |
+| `/optimize` | Phase 6 lead-opt     | bioisostere variants, sorted by score delta vs parent |
+
+Each page also exposes a JSON API at `/api/<mode>` for programmatic use,
+plus `/api/svg?smiles=…` for inline molecule rendering.
+
+Run locally:
+
+```bash
+uv sync --extra web
+uv run python ChemDesigner/app.py
+# -> http://127.0.0.1:5000
+```
+
+End-to-end smoke test (verified during build):
+
+```
+GET  /                         200 OK
+GET  /analyze /screen /risk /optimize     200 OK x4
+POST /api/analyze   (aspirin)             severity=favorable, score=0.82
+POST /api/screen    (4 SMILES)            n_scored=3, n_rejected=1, top=ibuprofen
+POST /api/risk      (atorvastatin)        risk_level=high, DILI flagged
+POST /api/optimize  (aspirin)             2 bioisostere variants
+GET  /api/svg       (aspirin)             8.7 KB SVG molecule render
 ```
 
 ---
