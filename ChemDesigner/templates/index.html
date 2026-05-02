@@ -1,148 +1,145 @@
 {% extends "base.html" %}
 
-{% block title %}Molecular Discovery Platform - Home{% endblock %}
+{% block title %}chemscreen — drug-candidate screening{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto">
-        <!-- Hero Section -->
-        <div class="text-center mb-5">
-            <div class="mb-4">
-                <i class="fas fa-atom fa-4x text-primary"></i>
-            </div>
-            <h1 class="display-4 fw-bold mb-3">Molecular Discovery Platform</h1>
-            <p class="lead mb-4">
-                AI-powered molecular generation and optimization for drug discovery using graph neural networks
-                and reinforcement learning.
-            </p>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                <a href="{{ url_for('generate_page') }}" class="btn btn-primary btn-lg px-4 me-sm-3">
-                    <i class="fas fa-flask me-2"></i>Start Generating
-                </a>
-                <a href="{{ url_for('analyze_page') }}" class="btn btn-outline-secondary btn-lg px-4">
-                    <i class="fas fa-chart-line me-2"></i>Analyze Molecules
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+<section class="py-3">
+    <h1 class="display-5 fw-semibold mb-2">
+        AI-Assisted Drug Candidate Screening
+    </h1>
+    <p class="lead text-secondary mb-4">
+        A computational pipeline that evaluates, ranks, and explains molecular
+        candidates using cheminformatics rules and machine-learning toxicity
+        predictors validated on public TDC benchmarks.
+    </p>
+</section>
 
-<!-- Features Section -->
-<div class="row g-4 mb-5">
-    <div class="col-md-4">
-        <div class="card h-100 border-0 bg-dark">
-            <div class="card-body text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-project-diagram fa-3x text-info"></i>
-                </div>
-                <h5 class="card-title">Graph-Based Generation</h5>
-                <p class="card-text text-muted">
-                    Generate novel molecules using graph variational autoencoders that understand 
-                    molecular structure at the atom and bond level.
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100 border-0 bg-dark">
-            <div class="card-body text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-robot fa-3x text-success"></i>
-                </div>
-                <h5 class="card-title">RL Optimization</h5>
-                <p class="card-text text-muted">
-                    Use reinforcement learning to optimize molecular properties like drug-likeness,
-                    synthetic accessibility, and solubility.
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100 border-0 bg-dark">
-            <div class="card-body text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-microscope fa-3x text-warning"></i>
-                </div>
-                <h5 class="card-title">Property Analysis</h5>
-                <p class="card-text text-muted">
-                    Real-time calculation of molecular descriptors including QED scores,
-                    Lipinski's Rule of Five compliance, and synthetic accessibility.
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Stats -->
-<div class="row g-4 mb-5">
+<section class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card bg-primary bg-opacity-10 border-primary border-opacity-25">
-            <div class="card-body text-center">
-                <h3 class="text-primary mb-1">64</h3>
-                <p class="text-muted small mb-0">Latent Dimensions</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-success bg-opacity-10 border-success border-opacity-25">
-            <div class="card-body text-center">
-                <h3 class="text-success mb-1">15+</h3>
-                <p class="text-muted small mb-0">Property Metrics</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-info bg-opacity-10 border-info border-opacity-25">
-            <div class="card-body text-center">
-                <h3 class="text-info mb-1">∞</h3>
-                <p class="text-muted small mb-0">Unique Molecules</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning bg-opacity-10 border-warning border-opacity-25">
-            <div class="card-body text-center">
-                <h3 class="text-warning mb-1">Real-time</h3>
-                <p class="text-muted small mb-0">Generation Speed</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Technology Stack -->
-<div class="row">
-    <div class="col-lg-10 mx-auto">
-        <div class="card bg-dark border-secondary">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-cogs me-2"></i>Technology Stack
-                </h5>
-            </div>
+        <div class="card border-info h-100">
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <h6 class="text-primary">Machine Learning</h6>
-                        <ul class="list-unstyled text-muted small">
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Graph Variational Autoencoders</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Reinforcement Learning (PPO)</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Graph Neural Networks</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Latent Space Exploration</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-info">Computational Chemistry</h6>
-                        <ul class="list-unstyled text-muted small">
-                            <li><i class="fas fa-check-circle text-success me-2"></i>RDKit for molecular calculations</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>SMILES string processing</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Drug-likeness scoring (QED)</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Synthetic accessibility analysis</li>
-                        </ul>
-                    </div>
-                </div>
+                <div class="text-info small text-uppercase">Toxicity AUC</div>
+                <div class="display-6 fw-bold">0.85+</div>
+                <div class="small text-muted">AMES / hERG / DILI on held-out TDC test</div>
             </div>
         </div>
     </div>
-</div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="small text-uppercase text-secondary">Tests</div>
+                <div class="display-6 fw-bold">219</div>
+                <div class="small text-muted">94% line coverage</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="small text-uppercase text-secondary">Reference drugs</div>
+                <div class="display-6 fw-bold">77</div>
+                <div class="small text-muted">25+ therapeutic classes</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="small text-uppercase text-secondary">Pipeline</div>
+                <div class="display-6 fw-bold">8 / 8</div>
+                <div class="small text-muted">phases complete</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3">
+    <div class="col-md-6">
+        <a class="card text-decoration-none h-100 mode-card" href="{{ url_for('analyze_page') }}">
+            <div class="card-body">
+                <h4 class="card-title">
+                    <i class="fas fa-microscope me-2 text-info"></i>Analyze
+                </h4>
+                <p class="card-text text-secondary">
+                    Single-molecule deep-dive. RDKit descriptors, drug-likeness
+                    rules (Lipinski, Veber, Ghose, QED), synthetic accessibility,
+                    toxicity predictions, structural alerts, similarity to
+                    approved drugs, and a feature-grounded explanation.
+                </p>
+                <div class="small text-info">
+                    Uses Phases 1–5  <i class="fas fa-arrow-right-long ms-1"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a class="card text-decoration-none h-100 mode-card" href="{{ url_for('screen_page') }}">
+            <div class="card-body">
+                <h4 class="card-title">
+                    <i class="fas fa-list-check me-2 text-info"></i>Screen
+                </h4>
+                <p class="card-text text-secondary">
+                    Batch screen a list of SMILES. Multi-objective scoring
+                    (linear or Derringer–Suich desirability), ranking, and
+                    rejection accounting for invalid inputs.
+                </p>
+                <div class="small text-info">
+                    Phase 6 — screening mode  <i class="fas fa-arrow-right-long ms-1"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a class="card text-decoration-none h-100 mode-card" href="{{ url_for('risk_page') }}">
+            <div class="card-body">
+                <h4 class="card-title">
+                    <i class="fas fa-shield-virus me-2 text-info"></i>Risk
+                </h4>
+                <p class="card-text text-secondary">
+                    Toxicity-focused report. Per-endpoint Ames / hERG / DILI
+                    probabilities, Brenk + PAINS structural alerts, and the
+                    closest approved drugs for context.
+                </p>
+                <div class="small text-info">
+                    Phase 6 — risk mode  <i class="fas fa-arrow-right-long ms-1"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a class="card text-decoration-none h-100 mode-card" href="{{ url_for('optimize_page') }}">
+            <div class="card-body">
+                <h4 class="card-title">
+                    <i class="fas fa-arrows-up-down-left-right me-2 text-info"></i>Optimize
+                </h4>
+                <p class="card-text text-secondary">
+                    Lead optimization via deterministic bioisostere swaps
+                    (Meanwell 2011): methyl→CF₃, hydroxyl↔fluoro, halogen
+                    interconversions, and more. Each variant re-scored.
+                </p>
+                <div class="small text-info">
+                    Phase 6 — lead-opt mode  <i class="fas fa-arrow-right-long ms-1"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+</section>
+
+<section class="mt-5">
+    <h5 class="text-secondary">Try with one of these</h5>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+        {% for label, smi in [
+            ('Aspirin',       'CC(=O)Oc1ccccc1C(=O)O'),
+            ('Ibuprofen',     'CC(C)Cc1ccc(C(C)C(=O)O)cc1'),
+            ('Caffeine',      'Cn1cnc2c1c(=O)n(C)c(=O)n2C'),
+            ('Atorvastatin',  'CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O'),
+            ('Rhodanine (PAINS)', 'O=C1CSC(=S)N1'),
+        ] %}
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{{ url_for('analyze_page') }}?smiles={{ smi|urlencode }}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

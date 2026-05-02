@@ -3,59 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Molecular Discovery Platform{% endblock %}</title>
-    
-    <!-- Bootstrap CSS with Replit theme -->
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome for icons -->
+    <title>{% block title %}chemscreen — drug-candidate screening{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- 3Dmol.js for molecular visualization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    
+
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-atom me-2"></i>
-                Molecular Discovery
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="fas fa-vial-circle-check me-2 text-info"></i>chemscreen
             </a>
-            
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('generate_page') }}">
-                            <i class="fas fa-flask me-1"></i>Generate
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('analyze_page') }}">
-                            <i class="fas fa-chart-line me-1"></i>Analyze
+                            <i class="fas fa-microscope me-1"></i>Analyze
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('screen_page') }}">
+                            <i class="fas fa-list-check me-1"></i>Screen
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('risk_page') }}">
+                            <i class="fas fa-shield-virus me-1"></i>Risk
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('optimize_page') }}">
+                            <i class="fas fa-arrows-up-down-left-right me-1"></i>Optimize
                         </a>
                     </li>
                 </ul>
-                
+
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <span class="navbar-text">
-                            <i class="fas fa-dna me-1"></i>
-                            AI-Powered Drug Discovery
+                        <span class="navbar-text small text-muted">
+                            RDKit + sklearn  &middot;  AUC 0.85+ (TDC)
                         </span>
                     </li>
                 </ul>
@@ -63,57 +57,25 @@
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <!-- Main Content -->
-    <main class="container my-4">
+    <main class="container py-4">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-light py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-8">
-                    <p class="mb-1">
-                        <strong>Molecular Discovery Platform</strong> - AI-powered drug discovery and molecular generation
-                    </p>
-                    <p class="small text-muted mb-0">
-                        Built with Flask, RDKit, and Bootstrap for pharmaceutical research and education.
-                    </p>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <p class="mb-1">
-                        <i class="fas fa-code me-1"></i>
-                        Graph-based neural networks
-                    </p>
-                    <p class="small text-muted mb-0">
-                        <i class="fas fa-brain me-1"></i>
-                        Machine learning for chemistry
-                    </p>
-                </div>
+    <footer class="container py-4 mt-5 border-top border-secondary text-muted small">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div>
+                chemscreen &mdash; deterministic drug-candidate screening pipeline.
+                Backed by RDKit, scikit-learn, and TDC benchmarks.
+            </div>
+            <div>
+                <a href="https://github.com/Dinesh0401/AI-Drugdiscovery" target="_blank" class="text-info text-decoration-none">
+                    <i class="fab fa-github me-1"></i>source
+                </a>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JavaScript -->
-    <script src="{{ url_for('static', filename='js/molecular.js') }}"></script>
-    
     {% block scripts %}{% endblock %}
 </body>
 </html>
