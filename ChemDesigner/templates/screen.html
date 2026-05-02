@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Screen — chemscreen{% endblock %}
+
+{% block content %}
+<h2 class="mb-1"><i class="fas fa-list-check me-2 text-info"></i>Screen</h2>
+<p class="text-secondary mb-4">
+    Batch screen a list of SMILES. Computes the multi-objective score for
+    each, drops invalid inputs, and ranks the survivors.
+</p>
+
+<form id="screen-form" class="card card-body mb-4">
+    <label class="form-label small text-uppercase text-secondary">SMILES list (one per line, comma, or whitespace)</label>
+    <textarea id="smiles-list" name="smiles_list" class="form-control font-monospace" rows="8"
+              placeholder="CC(=O)Oc1ccccc1C(=O)O&#10;CC(C)Cc1ccc(C(C)C(=O)O)cc1&#10;Cn1cnc2c1c(=O)n(C)c(=O)n2C"></textarea>
+
+    <div class="row g-2 mt-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small text-uppercase text-secondary mb-1">Top K</label>
+            <input id="top-k" type="number" class="form-control" value="25" min="1" max="200" style="width: 6rem;">
+        </div>
+        <div class="col-auto">
+            <div class="form-check pt-3">
+                <input id="require-lipinski" class="form-check-input" type="checkbox">
+                <label class="form-check-label small" for="require-lipinski">
+                    Require Lipinski pass
+                </label>
+            </div>
+        </div>
+        <div class="col-auto ms-auto">
+            <button class="btn btn-info" type="submit">Screen</button>
+        </div>
+    </div>
+</form>
+
+<div id="screen-error" class="alert alert-danger d-none"></div>
+<div id="screen-loading" class="text-secondary d-none">
+    <i class="fas fa-spinner fa-spin me-2"></i>Scoring&hellip;
+</div>
+
+<div id="screen-output" class="d-none">
+    <div class="d-flex gap-3 small text-secondary mb-2">
+        <span>Inputs: <strong id="n-input" class="text-info"></strong></span>
+        <span>Scored: <strong id="n-scored" class="text-info"></strong></span>
+        <span>Rejected: <strong id="n-rejected" class="text-info"></strong></span>
+        <span>Method: <strong id="method" class="text-info"></strong></span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead>
+                <tr class="small text-uppercase text-secondary">
+                    <th>#</th>
+                    <th>Score</th>
+                    <th>QED</th>
+                    <th>Lip</th>
+                    <th>SA</th>
+                    <th>Tox</th>
+                    <th>SMILES</th>
+                </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById('screen-form');
+const errBox = document.getElementById('screen-error');
+const loading = document.getElementById('screen-loading');
+const output = document.getElementById('screen-output');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const smilesList = document.getElementById('smiles-list').value.trim();
+    if (!smilesList) return;
+
+    errBox.classList.add('d-none');
+    output.classList.add('d-none');
+    loading.classList.remove('d-none');
+
+    let data;
+    try {
+        const resp = await fetch('/api/screen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                smiles_list: smilesList,
+                top_k: parseInt(document.getElementById('top-k').value, 10) || 25,
+                require_lipinski: document.getElementById('require-lipinski').checked,
+            }),
+        });
+        data = await resp.json();
+    } catch (e) {
+        loading.classList.add('d-none');
+        errBox.textContent = 'Network error: ' + e.message;
+        errBox.classList.remove('d-none');
+        return;
+    }
+    loading.classList.add('d-none');
+
+    if (!data.success) {
+        errBox.textContent = data.error || 'Screening failed';
+        errBox.classList.remove('d-none');
+        return;
+    }
+
+    document.getElementById('n-input').textContent = data.n_input;
+    document.getElementById('n-scored').textContent = data.n_scored;
+    document.getElementById('n-rejected').textContent = data.n_rejected;
+    document.getElementById('method').textContent = data.method;
+
+    const tbody = document.getElementById('results-body');
+    tbody.innerHTML = '';
+    for (const c of data.candidates) {
+        const tr = document.createElement('tr');
+        const link = '/analyze?smiles=' + encodeURIComponent(c.smiles);
+        tr.innerHTML =
+            '<td class="text-secondary">' + c.rank + '</td>' +
+            '<td class="fw-bold">' + c.final_score.toFixed(3) + '</td>' +
+            '<td>' + c.qed.toFixed(2) + '</td>' +
+            '<td>' + c.lipinski.toFixed(2) + '</td>' +
+            '<td>' + c.synthesis.toFixed(2) + '</td>' +
+            '<td>' + c.toxicity.toFixed(2) + '</td>' +
+            '<td><a class="text-info text-decoration-none" href="' + link + '">' +
+            '<code class="small">' + c.smiles + '</code></a></td>';
+        tbody.appendChild(tr);
+    }
+    output.classList.remove('d-none');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Optimize — chemscreen{% endblock %}
+
+{% block content %}
+<h2 class="mb-1"><i class="fas fa-arrows-up-down-left-right me-2 text-info"></i>Lead optimization</h2>
+<p class="text-secondary mb-4">
+    Apply deterministic bioisostere transformations (Meanwell 2011) to a parent
+    molecule and re-score every variant. Variants whose score beats the parent
+    are highlighted as improvements.
+</p>
+
+<form id="opt-form" class="card card-body mb-4">
+    <label class="form-label small text-uppercase text-secondary">Parent SMILES or formula</label>
+    <div class="d-flex gap-2">
+        <input id="opt-input" name="input" type="text" class="form-control"
+               placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O">
+        <button class="btn btn-info" type="submit">Optimize</button>
+    </div>
+    <div class="small text-muted mt-2">
+        Bioisostere catalog: methyl&nbsp;&rarr;&nbsp;CF<sub>3</sub>, OH&nbsp;&harr;&nbsp;F,
+        Cl&nbsp;&harr;&nbsp;F, NH<sub>2</sub>&nbsp;&rarr;&nbsp;OH, OMe&nbsp;&rarr;&nbsp;OH,
+        ethyl&nbsp;&rarr;&nbsp;methyl.
+    </div>
+</form>
+
+<div id="opt-error" class="alert alert-danger d-none"></div>
+<div id="opt-loading" class="text-secondary d-none">
+    <i class="fas fa-spinner fa-spin me-2"></i>Generating variants&hellip;
+</div>
+
+<div id="opt-output" class="d-none">
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3 text-center">
+                    <div id="parent-svg"></div>
+                </div>
+                <div class="col-md-9">
+                    <p class="text-secondary small text-uppercase mb-1">Parent</p>
+                    <code id="parent-smiles" class="small text-info"></code>
+                    <div class="mt-2">
+                        Score: <strong id="parent-score" class="text-info"></strong>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        <span id="n-variants"></span> variants generated &middot;
+                        <span id="n-improved"></span> improved over parent
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="text-success mb-2" id="improved-header"><i class="fas fa-arrow-trend-up me-1"></i>Improved variants</h5>
+    <div id="improved-table" class="mb-4"></div>
+
+    <h5 class="text-secondary mb-2">All variants</h5>
+    <div id="variants-table"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById('opt-form');
+const errBox = document.getElementById('opt-error');
+const loading = document.getElementById('opt-loading');
+const output = document.getElementById('opt-output');
+
+function variantRow(v, parent) {
+    const link = '/analyze?smiles=' + encodeURIComponent(v.smiles);
+    const score = v.final_score == null ? '&mdash;' : v.final_score.toFixed(3);
+    let delta = '';
+    if (v.delta != null) {
+        const cls = v.delta > 0 ? 'text-success' : (v.delta < 0 ? 'text-danger' : 'text-muted');
+        const sign = v.delta > 0 ? '+' : '';
+        delta = '<span class="' + cls + ' fw-bold">' + sign + v.delta.toFixed(3) + '</span>';
+    }
+    return '<tr>' +
+        '<td class="small">' + v.transformation + '</td>' +
+        '<td class="font-monospace">' + score + '</td>' +
+        '<td>' + delta + '</td>' +
+        '<td><a class="text-info text-decoration-none" href="' + link + '">' +
+        '<code class="small">' + v.smiles + '</code></a></td>' +
+        '</tr>';
+}
+
+function renderTable(variants, parent) {
+    if (!variants || variants.length === 0) {
+        return '<div class="text-muted small fst-italic">none</div>';
+    }
+    const rows = variants.map(v => variantRow(v, parent)).join('');
+    return '<div class="table-responsive"><table class="table table-sm align-middle">' +
+        '<thead><tr class="small text-uppercase text-secondary">' +
+        '<th>Transformation</th><th>Score</th><th>&Delta;</th><th>SMILES</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('opt-input').value.trim();
+    if (!input) return;
+
+    errBox.classList.add('d-none');
+    output.classList.add('d-none');
+    loading.classList.remove('d-none');
+
+    let data;
+    try {
+        const resp = await fetch('/api/optimize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input }),
+        });
+        data = await resp.json();
+    } catch (e) {
+        loading.classList.add('d-none');
+        errBox.textContent = 'Network error: ' + e.message;
+        errBox.classList.remove('d-none');
+        return;
+    }
+    loading.classList.add('d-none');
+
+    if (!data.success) {
+        errBox.textContent = data.error || 'Optimization failed';
+        errBox.classList.remove('d-none');
+        return;
+    }
+
+    document.getElementById('parent-svg').innerHTML =
+        '<img class="img-fluid" src="/api/svg?smiles=' + encodeURIComponent(data.parent_smiles) +
+        '&w=240&h=180" alt="parent">';
+    document.getElementById('parent-smiles').textContent = data.parent_smiles;
+    document.getElementById('parent-score').textContent =
+        data.parent_score == null ? '—' : data.parent_score.toFixed(3);
+    document.getElementById('n-variants').textContent = data.variants.length;
+    document.getElementById('n-improved').textContent = data.improved_variants.length;
+
+    const improvedHeader = document.getElementById('improved-header');
+    if (data.improved_variants.length === 0) {
+        improvedHeader.classList.add('d-none');
+    } else {
+        improvedHeader.classList.remove('d-none');
+    }
+    document.getElementById('improved-table').innerHTML =
+        renderTable(data.improved_variants, data);
+    document.getElementById('variants-table').innerHTML =
+        renderTable(data.variants, data);
+
+    output.classList.remove('d-none');
+});
+</script>
+{% endblock %}

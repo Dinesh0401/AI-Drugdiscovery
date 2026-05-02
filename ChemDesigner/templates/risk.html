@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Risk — chemscreen{% endblock %}
+
+{% block content %}
+<h2 class="mb-1"><i class="fas fa-shield-virus me-2 text-info"></i>Risk analysis</h2>
+<p class="text-secondary mb-4">
+    Toxicity-focused report. Combines per-endpoint Ames / hERG / DILI
+    predictions, Brenk + PAINS structural alerts, and the closest approved
+    drugs for context.
+</p>
+
+<form id="risk-form" class="card card-body mb-4">
+    <label class="form-label small text-uppercase text-secondary">SMILES or chemical formula</label>
+    <div class="d-flex gap-2">
+        <input id="risk-input" name="input" type="text" class="form-control"
+               placeholder="e.g. CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O">
+        <button class="btn btn-info" type="submit">Analyze risk</button>
+    </div>
+</form>
+
+<div id="risk-error" class="alert alert-danger d-none"></div>
+<div id="risk-loading" class="text-secondary d-none">
+    <i class="fas fa-spinner fa-spin me-2"></i>Computing&hellip;
+</div>
+
+<div id="risk-output" class="d-none">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="text-secondary small text-uppercase mb-2">Risk level</div>
+                    <div id="risk-pill" class="display-6 fw-bold py-3 px-3 rounded"></div>
+                    <div id="risk-summary" class="mt-3 small text-secondary"></div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <p class="text-secondary small text-uppercase mb-1">Recommendation</p>
+                    <p id="risk-recommendation" class="mb-0 small"></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <p class="text-secondary small text-uppercase mb-2">Toxicity predictions</p>
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr class="small text-uppercase text-secondary">
+                                <th>Endpoint</th><th>Class</th><th>Probability</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tox-body"></tbody>
+                    </table>
+                    <div class="small text-muted mt-2">
+                        RF on 2048-bit Morgan FP &middot; AUC 0.85+ on TDC test sets
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <p class="text-secondary small text-uppercase mb-2">Structural alerts</p>
+                            <div id="alerts-body" class="small"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <p class="text-secondary small text-uppercase mb-2">Closest approved drugs</p>
+                            <div id="similar-body" class="small"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById('risk-form');
+const errBox = document.getElementById('risk-error');
+const loading = document.getElementById('risk-loading');
+const output = document.getElementById('risk-output');
+
+const RISK_STYLE = {
+    low:      'bg-success-subtle text-success border border-success',
+    moderate: 'bg-warning-subtle text-warning border border-warning',
+    high:     'bg-danger-subtle  text-danger  border border-danger',
+    unknown:  'bg-secondary-subtle text-secondary border border-secondary',
+};
+
+const TOX_STYLE = {
+    low:      'badge bg-success-subtle text-success border border-success',
+    moderate: 'badge bg-warning-subtle text-warning border border-warning',
+    high:     'badge bg-danger-subtle  text-danger  border border-danger',
+};
+
+const ENDPOINT_FULL = {
+    ames: 'Ames mutagenicity',
+    herg: 'hERG cardiac',
+    dili: 'DILI hepatotoxicity',
+};
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('risk-input').value.trim();
+    if (!input) return;
+
+    errBox.classList.add('d-none');
+    output.classList.add('d-none');
+    loading.classList.remove('d-none');
+
+    let data;
+    try {
+        const resp = await fetch('/api/risk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input }),
+        });
+        data = await resp.json();
+    } catch (e) {
+        loading.classList.add('d-none');
+        errBox.textContent = 'Network error: ' + e.message;
+        errBox.classList.remove('d-none');
+        return;
+    }
+    loading.classList.add('d-none');
+
+    if (!data.success) {
+        errBox.textContent = data.error || 'Analysis failed';
+        errBox.classList.remove('d-none');
+        return;
+    }
+
+    const pill = document.getElementById('risk-pill');
+    pill.className = 'display-6 fw-bold py-3 px-3 rounded ' +
+        (RISK_STYLE[data.risk_level] || RISK_STYLE.unknown);
+    pill.textContent = data.risk_level.toUpperCase();
+    document.getElementById('risk-summary').textContent = data.summary;
+    document.getElementById('risk-recommendation').textContent = data.recommendation;
+
+    const tbody = document.getElementById('tox-body');
+    tbody.innerHTML = '';
+    if (Object.keys(data.tox_predictions).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-muted small">' +
+            'Toxicity models not trained &mdash; run scripts/train_toxicity_models.py' +
+            '</td></tr>';
+    } else {
+        for (const [ep, p] of Object.entries(data.tox_predictions)) {
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + (ENDPOINT_FULL[ep] || ep) + '</td>' +
+                '<td><span class="' + (TOX_STYLE[p.classification] || '') + '">' +
+                p.classification.toUpperCase() + '</span></td>' +
+                '<td class="font-monospace">' + p.risk_score.toFixed(3) + '</td>';
+            tbody.appendChild(tr);
+        }
+    }
+
+    const alertsBox = document.getElementById('alerts-body');
+    if (!data.structural_alerts || data.structural_alerts.length === 0) {
+        alertsBox.innerHTML = '<span class="text-success">' +
+            '<i class="fas fa-check me-1"></i>No Brenk or PAINS hits</span>';
+    } else {
+        alertsBox.innerHTML = data.structural_alerts.map(
+            a => '<span class="badge bg-warning-subtle text-warning border border-warning me-1 mb-1">' +
+                 a + '</span>'
+        ).join('');
+    }
+
+    const simBox = document.getElementById('similar-body');
+    simBox.innerHTML = '';
+    if (data.similar_drugs && data.similar_drugs.length > 0) {
+        for (const s of data.similar_drugs) {
+            const row = document.createElement('div');
+            row.className = 'mb-1';
+            row.innerHTML =
+                '<span class="text-info font-monospace">' + s.similarity.toFixed(2) + '</span> ' +
+                '<strong>' + s.name + '</strong> ' +
+                '<span class="text-muted">(' + (s.drug_class || '-') + ')</span>';
+            simBox.appendChild(row);
+        }
+    } else {
+        simBox.innerHTML = '<span class="text-muted">no neighbors</span>';
+    }
+
+    output.classList.remove('d-none');
+});
+</script>
+{% endblock %}
